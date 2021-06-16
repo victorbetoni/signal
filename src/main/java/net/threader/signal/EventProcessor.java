@@ -53,7 +53,14 @@ public class EventProcessor {
             while(!copy.isEmpty()) {
                 Pair<EventListener, Method> pair = copy.poll();
                 try {
-                    pair.getSecond().invoke(pair.getFirst(), event);
+                    if(event instanceof ICancellable) {
+                        ICancellable cancellable = (ICancellable) event;
+                        if(!cancellable.isCancelled()) {
+                            pair.getSecond().invoke(pair.getFirst(), event);
+                        }
+                    } else {
+                        pair.getSecond().invoke(pair.getFirst(), event);
+                    }
                 } catch (IllegalAccessException | InvocationTargetException e) {
                     e.printStackTrace();
                 }
