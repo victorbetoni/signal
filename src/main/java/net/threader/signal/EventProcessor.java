@@ -18,13 +18,13 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class EventProcessor {
     private Multimap<Class<?>, Pair<EventListener, Method>> registeredHandlers = ArrayListMultimap.create();
-    private Map<Class<? extends IEvent>, Queue<Pair<EventListener, Method>>> handleQueues = new HashMap<>();
+    private Map<Class<? extends Event>, Queue<Pair<EventListener, Method>>> handleQueues = new HashMap<>();
 
     public void register(EventListener listener) {
         Set<Class<?>> affectedEvents = new HashSet<>();
         Arrays.stream(listener.getClass().getDeclaredMethods())
-                .filter(method -> method.getParameterTypes().length == 1)
-                .filter(method -> method.getParameterTypes()[0].isInstance(IEvent.class))
+                .filter(method -> method.getParameterCount() == 1)
+                .filter(method -> method.getParameterTypes()[0].getSuperclass().equals(Event.class))
                 .filter(method -> method.getAnnotation(Handler.class) != null)
                 .forEach(method -> {
                     registeredHandlers.put(method.getParameterTypes()[0], new Pair<>(listener, method));
@@ -34,12 +34,12 @@ public class EventProcessor {
         affectedEvents.forEach(x -> {
             Queue<Pair<EventListener, Method>> reorganizedQueue = sort(new HashSet<>(registeredHandlers.get(x)));
             handleQueues.remove(x);
-            handleQueues.put((Class<? extends IEvent>) x, reorganizedQueue);
+            handleQueues.put((Class<? extends Event>) x, reorganizedQueue);
         });
     }
 
-    public <E extends IEvent> void post(E event) {
-        Optional.of(handleQueues.get(event.getClass())).ifPresent(queue -> {
+    public <E extends Event> void post(E event) {
+        Optional.ofNullable(handleQueues.get(event.getClass())).ifPresent(queue -> {
             Queue<Pair<EventListener, Method>> copy = new ConcurrentLinkedQueue<>(queue);
             while(!copy.isEmpty()) {
                 Pair<EventListener, Method> pair = copy.poll();

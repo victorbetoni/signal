@@ -1,4 +1,4 @@
 package net.threader.signal;
 
-public interface IEvent {
+public abstract class Event {
 }
