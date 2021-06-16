@@ -8,5 +8,5 @@ import java.lang.annotation.Target;
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Handler {
-    Priority priority() default Priority.NORMAL;
+    int priority() default 0;
 }
