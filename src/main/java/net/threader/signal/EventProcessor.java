@@ -1,7 +1,6 @@
 package net.threader.signal;
 
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Comparators;
 import com.google.common.collect.Multimap;
 import net.threader.signal.util.Pair;
 
@@ -9,7 +8,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -19,13 +17,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.stream.Collectors;
 
 public class EventProcessor {
     private Multimap<Class<?>, Pair<EventListener, Method>> registeredHandlers = ArrayListMultimap.create();
-    private Map<Class<? extends Event>, Queue<Pair<EventListener, Method>>> handleQueues = new HashMap<>();
+    private Map<Class<?>, Queue<Pair<EventListener, Method>>> handleQueues = new HashMap<>();
 
     public void register(EventListener listener) {
         Set<Class<?>> affectedEvents = new HashSet<>();
@@ -43,13 +39,13 @@ public class EventProcessor {
             list.sort(Comparator.comparingInt(p -> p.getSecond().getAnnotation(Handler.class).priority()));
             Collections.reverse(list);
             handleQueues.remove(x);
-            handleQueues.put((Class<? extends Event>) x, new LinkedBlockingQueue<>(list));
+            handleQueues.put(x, new LinkedBlockingQueue<>(list));
         });
     }
 
     public <E extends Event> void post(E event) {
         Optional.ofNullable(handleQueues.get(event.getClass())).ifPresent(queue -> {
-            Queue<Pair<EventListener, Method>> copy = new ConcurrentLinkedQueue<>(queue);
+            Queue<Pair<EventListener, Method>> copy = new LinkedBlockingQueue<>(queue);
             while(!copy.isEmpty()) {
                 Pair<EventListener, Method> pair = copy.poll();
                 try {
